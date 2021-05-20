@@ -1,11 +1,12 @@
 import os
+from types import MethodDescriptorType
 
 from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -179,6 +180,18 @@ def users_followers(user_id):
     user = User.query.get_or_404(user_id)
     return render_template('users/followers.html', user=user)
 
+@app.route('/users/<int:user_id>/likes')
+def show_likes(user_id):
+    """Show list of likes of this user."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    user = User.query.get_or_404(user_id)
+    messages = user.likes
+    return render_template('users/likes.html', user=user, messages=messages)
+
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
 def add_follow(follow_id):
@@ -325,6 +338,21 @@ def homepage():
     else:
         return render_template('home-anon.html')
 
+##############################################################################
+# Likes
+
+@app.route('/users/add_like/<int:msg_id>', methods=['POST'])
+def like_message(msg_id):
+    msg = Message.query.get(msg_id)
+    if msg in g.user.likes:
+        like = Likes.query.filter_by(user_id=g.user.id,message_id=msg.id).first()
+        db.session.delete(like)
+        db.session.commit()
+        return redirect('/')
+    like = Likes(user_id=g.user.id,message_id=msg.id)
+    db.session.add(like)
+    db.session.commit()
+    return redirect('/')
 
 ##############################################################################
 # Turn off all caching in Flask
