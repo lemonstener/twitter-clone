@@ -17,3 +17,7 @@ Like system implemented:
   - users can like messages
   - details page now displays the number of likes a user has given
   - added a likes page containing all messages the user has liked
+
+# PART THREE
+
+Some tests added for the user model
